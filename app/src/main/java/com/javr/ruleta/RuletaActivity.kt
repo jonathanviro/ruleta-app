@@ -32,7 +32,7 @@ class RuletaActivity : AppCompatActivity() {
         rotateAnimator.duration = 1000
 
         binding.btnFooterGirarRuleta.setOnClickListener {
-            val intent: Intent
+            var intent = Intent(this, PremioActivity::class.java)
 
             when (indicePremio) {
                 in 0..7 -> {
