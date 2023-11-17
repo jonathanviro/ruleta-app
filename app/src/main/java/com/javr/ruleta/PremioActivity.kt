@@ -1,8 +1,8 @@
 package com.javr.ruleta
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import com.javr.ruleta.databinding.ActivityPremioBinding
 
 class PremioActivity : AppCompatActivity() {

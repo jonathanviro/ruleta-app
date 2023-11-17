@@ -1,14 +1,24 @@
 package com.javr.ruleta
 
+import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
 import com.javr.ruleta.databinding.ActivityRuletaBinding
-import java.util.Calendar
+import com.javr.ruleta.util.GlobalVariables
+import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 class RuletaActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRuletaBinding
+
+    private val inactivityDuration = 120L // 60 segundos
+    private val handler = Handler(Looper.getMainLooper())
+    private var inactivityStartTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,61 +29,118 @@ class RuletaActivity : AppCompatActivity() {
     }
 
     private fun initCompenents() {
-        val ivRuleta = binding.ruleta
         val vueltaCompleta = 360f * 8
+        val gradosPremio = vueltaCompleta + 15
+        val gradosGraciasParticipar = vueltaCompleta + 45
+        val gradosSigueParticipando = vueltaCompleta + 102
 
-        // Obtener la hora actual en formato de 24 horas
-        val horaActual = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-
-        // Calcular el índice de premio en base a la hora actual
-        val indicePremio = calcularIndicePremio(horaActual)
-
-        val rotateAnimator = ObjectAnimator.ofFloat(ivRuleta, "rotation", 0f, vueltaCompleta)
-        rotateAnimator.duration = 1000
+        var rotateAnimator: ObjectAnimator
+        var giro = 0f
 
         binding.btnFooterGirarRuleta.setOnClickListener {
+            binding.btnFooterGirarRuleta.isEnabled = false
+            restartInactivityTimer()
+
+            val numeroAleatorio = Random.nextInt(1, 80)
+
             var intent = Intent(this, PremioActivity::class.java)
 
-            when (indicePremio) {
-                in 0..7 -> {
-                    // Ganar (índices 0-7)
-                    intent = Intent(this, PremioActivity::class.java)
-                }
-                8 -> {
-                    // Seguir Participando (índice 8)
-                }
-                else -> {
-                    // Gracias por Participar (índices 9-23)
-                    intent = Intent(this, MainActivity::class.java)
+            if (GlobalVariables.miVariableGlobal == 80) {
+                GlobalVariables.miVariableGlobal = 0
+                giro = gradosPremio
+                intent = Intent(this, PremioActivity::class.java)
+            } else {
+                when (numeroAleatorio) {
+                    in 1..40 -> {
+                        giro = gradosSigueParticipando
+                    }
+
+                    in 41..79 -> {
+                        GlobalVariables.miVariableGlobal = GlobalVariables.miVariableGlobal + 1
+                        giro = gradosGraciasParticipar
+                        intent = Intent(this, MainActivity::class.java)
+                    }
                 }
             }
 
-            startActivity(intent)
-            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            rotateAnimator = ObjectAnimator.ofFloat(binding.ruleta, "rotation", 0f, giro)
+            rotateAnimator.duration = 4000
+
+            rotateAnimator.addListener(object : Animator.AnimatorListener {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (GlobalVariables.miVariableGlobal == 80) {
+                        startActivity(intent)
+                    } else {
+                        when (numeroAleatorio) {
+                            in 1..40 -> {
+                                binding.btnFooterGirarRuleta.isEnabled = true
+                            }
+
+                            in 41..79 -> {
+                                Thread.sleep(2000)
+                                startActivity(intent)
+                            }
+                        }
+                    }
+
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                }
+
+                override fun onAnimationStart(animation: Animator) {
+                }
+
+                override fun onAnimationCancel(animation: Animator) {
+                }
+
+                override fun onAnimationRepeat(animation: Animator) {
+                }
+            })
+
             rotateAnimator.start()
         }
     }
 
-    private fun calcularIndicePremio(hora: Int): Int {
-        // Ejemplo: Dividir el día en 24 segmentos
-        val segmentosPorHora = 24
-        val indiceGanar = 8 // Número de premios
-        val indiceSeguirParticipando = 1 // Índice para seguir participando
-        val totalSegmentos = indiceGanar + indiceSeguirParticipando
+    private fun startInactivityTimer() {
+        inactivityStartTime = System.currentTimeMillis()
+        handler.postDelayed(inactivityRunnable, TimeUnit.SECONDS.toMillis(inactivityDuration))
+    }
 
-        // Calcular el índice de premio en base a la hora actual
-        val indiceCalculado = (hora * totalSegmentos) / segmentosPorHora
-
-        return if (indiceCalculado < indiceGanar) {
-            // Índices 0-7 para Ganar
-            indiceCalculado
-        } else if (indiceCalculado == indiceGanar) {
-            // Índice 8 para Seguir Participando
-            indiceGanar
-        } else {
-            // Índices 9-23 para Gracias por Participar
-            indiceCalculado + (segmentosPorHora - totalSegmentos)
+    private val inactivityRunnable = Runnable {
+        val elapsedTime = System.currentTimeMillis() - inactivityStartTime
+        if (elapsedTime >= TimeUnit.SECONDS.toMillis(inactivityDuration)) {
+            val intent = Intent(this@RuletaActivity, MainActivity::class.java)
+            startActivity(intent)
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            finish()
         }
     }
 
+    private fun restartInactivityTimer() {
+        handler.removeCallbacks(inactivityRunnable)
+        startInactivityTimer()
+    }
+
+    private fun stopInactivityTimer() {
+        handler.removeCallbacks(inactivityRunnable)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        restartInactivityTimer()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopInactivityTimer()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        restartInactivityTimer()
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        restartInactivityTimer()
+        return super.dispatchTouchEvent(event)
+    }
 }
