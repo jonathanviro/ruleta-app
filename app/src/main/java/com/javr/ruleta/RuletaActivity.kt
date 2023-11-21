@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
 import com.javr.ruleta.databinding.ActivityRuletaBinding
 import com.javr.ruleta.util.GlobalVariables
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -54,17 +55,36 @@ class RuletaActivity : AppCompatActivity() {
                 giro = gradosPremio
                 intent = Intent(this, PremioActivity::class.java)
             } else {
-                when (numeroAleatorio) {
-                    in 1..INTENTO_SIGUE_PARTICIPANDO -> {
-                        giro = gradosSigueParticipando
-                    }
+                if (obtenerMinuto()) {
+                    GlobalVariables.contadorSigueParticipando = GlobalVariables.contadorSigueParticipando + 1
+                    giro = gradosSigueParticipando
 
-                    in (INTENTO_SIGUE_PARTICIPANDO +1 )..(INTENTO_GANADOR - 1) -> {
+                    if (GlobalVariables.contadorSigueParticipando >= INTENTO_GANADOR) {
                         GlobalVariables.contadorGanador = GlobalVariables.contadorGanador + 1
+                        GlobalVariables.contadorSigueParticipando = 0
+
                         giro = gradosGraciasParticipar
                         intent = Intent(this, MainActivity::class.java)
                     }
+                } else {
+                    GlobalVariables.contadorGanador = GlobalVariables.contadorGanador + 1
+                    GlobalVariables.contadorSigueParticipando = 0
+
+                    giro = gradosGraciasParticipar
+                    intent = Intent(this, MainActivity::class.java)
                 }
+
+//                when (numeroAleatorio) {
+//                    in 1..INTENTO_SIGUE_PARTICIPANDO -> {
+//                        giro = gradosSigueParticipando
+//                    }
+//
+//                    in (INTENTO_SIGUE_PARTICIPANDO + 1)..(INTENTO_GANADOR - 1) -> {
+//                        GlobalVariables.contadorGanador = GlobalVariables.contadorGanador + 1
+//                        giro = gradosGraciasParticipar
+//                        intent = Intent(this, MainActivity::class.java)
+//                    }
+//                }
             }
 
             rotateAnimator = ObjectAnimator.ofFloat(binding.ruleta, "rotation", 0f, giro)
@@ -72,24 +92,44 @@ class RuletaActivity : AppCompatActivity() {
 
             rotateAnimator.addListener(object : Animator.AnimatorListener {
                 override fun onAnimationEnd(animation: Animator) {
-                    if (GlobalVariables.contadorGanador == INTENTO_GANADOR) {
-                        startActivity(intent)
-                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-                        finish()
-                    } else {
-                        when (numeroAleatorio) {
-                            in 1..INTENTO_SIGUE_PARTICIPANDO -> {
-                                binding.btnFooterGirarRuleta.isEnabled = true
-                            }
+                    when (giro) {
+                        gradosPremio -> {
+                            startActivity(intent)
+                            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                            finish()
+                        }
 
-                            in (INTENTO_SIGUE_PARTICIPANDO +1 )..(INTENTO_GANADOR - 1) -> {
-                                Thread.sleep(2000)
-                                startActivity(intent)
-                                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-                                finish()
-                            }
+                        gradosSigueParticipando -> {
+                            binding.btnFooterGirarRuleta.isEnabled = true
+                        }
+
+                        gradosGraciasParticipar -> {
+                            Thread.sleep(2000)
+                            startActivity(intent)
+                            overridePendingTransition(
+                                R.anim.slide_in_right,
+                                R.anim.slide_out_left
+                            )
+                            finish()
                         }
                     }
+
+//                        when (numeroAleatorio) {
+//                            in 1..INTENTO_SIGUE_PARTICIPANDO -> {
+//                                binding.btnFooterGirarRuleta.isEnabled = true
+//                            }
+//
+//                            in (INTENTO_SIGUE_PARTICIPANDO + 1)..(INTENTO_GANADOR - 1) -> {
+//                                Thread.sleep(2000)
+//                                startActivity(intent)
+//                                overridePendingTransition(
+//                                    R.anim.slide_in_right,
+//                                    R.anim.slide_out_left
+//                                )
+//                                finish()
+//                            }
+//                        }
+
                 }
 
                 override fun onAnimationStart(animation: Animator) {
@@ -104,6 +144,16 @@ class RuletaActivity : AppCompatActivity() {
 
             rotateAnimator.start()
         }
+    }
+
+    private fun obtenerMinuto(): Boolean {
+        val calendar: Calendar = Calendar.getInstance()
+        val minute = calendar.get(Calendar.MINUTE)
+        if (minute % 2 != 0) {
+            return true
+        }
+
+        return false
     }
 
     private fun startInactivityTimer() {
