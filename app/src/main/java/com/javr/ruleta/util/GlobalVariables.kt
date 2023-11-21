@@ -1,5 +1,6 @@
 package com.javr.ruleta.util
 
 object GlobalVariables {
-    var miVariableGlobal: Int = 0
+    var contadorGanador: Int = 1
+    var contadorSigueParticipando: Int = 1
 }

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
 import com.javr.ruleta.databinding.ActivityRuletaBinding
@@ -19,6 +20,8 @@ class RuletaActivity : AppCompatActivity() {
     private val inactivityDuration = 120L // 60 segundos
     private val handler = Handler(Looper.getMainLooper())
     private var inactivityStartTime: Long = 0
+    private val INTENTO_GANADOR = 3
+    private val INTENTO_SIGUE_PARTICIPANDO = 10
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,25 +41,26 @@ class RuletaActivity : AppCompatActivity() {
         var giro = 0f
 
         binding.btnFooterGirarRuleta.setOnClickListener {
+            Log.i("JUGAR", "Se presiono")
             binding.btnFooterGirarRuleta.isEnabled = false
             restartInactivityTimer()
 
-            val numeroAleatorio = Random.nextInt(1, 80)
+            val numeroAleatorio = Random.nextInt(1, INTENTO_GANADOR)
 
             var intent = Intent(this, PremioActivity::class.java)
 
-            if (GlobalVariables.miVariableGlobal == 80) {
-                GlobalVariables.miVariableGlobal = 0
+            if (GlobalVariables.contadorGanador == INTENTO_GANADOR) {
+                GlobalVariables.contadorGanador = 0
                 giro = gradosPremio
                 intent = Intent(this, PremioActivity::class.java)
             } else {
                 when (numeroAleatorio) {
-                    in 1..40 -> {
+                    in 1..INTENTO_SIGUE_PARTICIPANDO -> {
                         giro = gradosSigueParticipando
                     }
 
-                    in 41..79 -> {
-                        GlobalVariables.miVariableGlobal = GlobalVariables.miVariableGlobal + 1
+                    in (INTENTO_SIGUE_PARTICIPANDO +1 )..(INTENTO_GANADOR - 1) -> {
+                        GlobalVariables.contadorGanador = GlobalVariables.contadorGanador + 1
                         giro = gradosGraciasParticipar
                         intent = Intent(this, MainActivity::class.java)
                     }
@@ -68,22 +72,24 @@ class RuletaActivity : AppCompatActivity() {
 
             rotateAnimator.addListener(object : Animator.AnimatorListener {
                 override fun onAnimationEnd(animation: Animator) {
-                    if (GlobalVariables.miVariableGlobal == 80) {
+                    if (GlobalVariables.contadorGanador == INTENTO_GANADOR) {
                         startActivity(intent)
+                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                        finish()
                     } else {
                         when (numeroAleatorio) {
-                            in 1..40 -> {
+                            in 1..INTENTO_SIGUE_PARTICIPANDO -> {
                                 binding.btnFooterGirarRuleta.isEnabled = true
                             }
 
-                            in 41..79 -> {
+                            in (INTENTO_SIGUE_PARTICIPANDO +1 )..(INTENTO_GANADOR - 1) -> {
                                 Thread.sleep(2000)
                                 startActivity(intent)
+                                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                                finish()
                             }
                         }
                     }
-
-                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
                 }
 
                 override fun onAnimationStart(animation: Animator) {

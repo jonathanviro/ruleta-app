@@ -2,6 +2,7 @@ package com.javr.ruleta
 
 import ExcelUtil
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
@@ -9,7 +10,10 @@ import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.javr.ruleta.databinding.ActivityFormularioBinding
 import java.io.File
 import java.text.SimpleDateFormat
@@ -27,6 +31,15 @@ class FormularioActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var inactivityStartTime: Long = 0
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                // Permiso concedido, realiza la operación que necesitas
+            } else {
+                // Permiso denegado, puedes informar al usuario o manejar la situación de otra manera
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityFormularioBinding.inflate(layoutInflater)
@@ -42,7 +55,13 @@ class FormularioActivity : AppCompatActivity() {
 
         binding.btnFooterComencemos.setOnClickListener {
             if (validar()) {
-                generateExcel()
+                // Verificar si se tienen los permisos
+                if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    generateExcel()
+                } else {
+                    // Si no se tienen los permisos, solicitarlos
+                    requestPermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                }
             }
         }
     }
@@ -102,7 +121,9 @@ class FormularioActivity : AppCompatActivity() {
     }
 
     private fun createExcelUtil() {
-        val carpetaDescargas = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)?.absolutePath + "/ruleta/"
+        val carpetaDescargas =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                ?.absolutePath + "/ruleta/"
         val fechaActual = SimpleDateFormat("yyyyMMdd").format(Date())
         val nombreArchivo = "datos_ruleta_$fechaActual.xlsx"
         val rutaCompleta = carpetaDescargas + nombreArchivo
@@ -185,5 +206,4 @@ class FormularioActivity : AppCompatActivity() {
         restartInactivityTimer()
         return super.dispatchTouchEvent(event)
     }
-
 }

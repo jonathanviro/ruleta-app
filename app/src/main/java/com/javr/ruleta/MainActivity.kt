@@ -28,11 +28,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // Verificar si se tienen los permisos
-        if (ContextCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             // Permiso ya concedido, realiza la operación que necesitas
             val directorio = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
             // Realiza las operaciones necesarias en el directorio
